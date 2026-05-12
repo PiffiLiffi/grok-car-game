@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grok Car Dodge</title>
+    <style>
+        body { margin: 0; background: #111; color: #0f0; font-family: monospace; text-align: center; }
+        canvas { border: 2px solid #0f0; background: #222; display: block; margin: 20px auto; }
+        h1 { color: #0f0; }
+    </style>
+</head>
+<body>
+    <h1>🚗 Grok Car Dodge 🚗</h1>
+    <p>Use ARROW KEYS or WASD to move. Dodge the other cars!</p>
+    <canvas id="game" width="400" height="600"></canvas>
+    <p>Score: <span id="score">0</span></p>
+
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+
+        let carX = 180;
+        let carY = 450;
+        let carSpeed = 5;
+        let score = 0;
+        let gameOver = false;
+
+        const obstacles = [];
+        const keys = {};
+
+        // Player car
+        function drawPlayer() {
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(carX, carY, 40, 70);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(carX+8, carY+10, 24, 20);
+            ctx.fillRect(carX+8, carY+45, 24, 15);
+        }
+
+        // Obstacle cars
+        function createObstacle() {
+            obstacles.push({
+                x: Math.random() * 320 + 40,
+                y: -80,
+                speed: 4 + Math.random() * 3
+            });
+        }
+
+        function drawObstacles() {
+            ctx.fillStyle = '#f00';
+            for (let obs of obstacles) {
+                ctx.fillRect(obs.x, obs.y, 40, 70);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(obs.x+8, obs.y+10, 24, 20);
+                ctx.fillRect(obs.x+8, obs.y+45, 24, 15);
+                ctx.fillStyle = '#f00';
+            }
+        }
+
+        function update() {
+            if (gameOver) return;
+
+            // Movement
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) carX -= carSpeed;
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) carX += carSpeed;
+            if (keys['ArrowUp'] || keys['w'] || keys['W']) carY -= carSpeed;
+            if (keys['ArrowDown'] || keys['s'] || keys['S']) carY += carSpeed;
+
+            // Boundaries
+            carX = Math.max(0, Math.min(360, carX));
+            carY = Math.max(0, Math.min(530, carY));
+
+            // Update obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].y += obstacles[i].speed;
+
+                // Collision
+                if (
+                    carX < obstacles[i].x + 40 &&
+                    carX + 40 > obstacles[i].x &&
+                    carY < obstacles[i].y + 70 &&
+                    carY + 70 > obstacles[i].y
+                ) {
+                    gameOver = true;
+                }
+
+                // Remove off screen
+                if (obstacles[i].y > 650) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                    scoreEl.textContent = score;
+                }
+            }
+
+            // Spawn new obstacles
+            if (Math.random() < 0.03) createObstacle();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Road lines
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 4;
+            for (let i = 0; i < 10; i++) {
+                ctx.beginPath();
+                ctx.moveTo(120, (Date.now() / 5 % 100) + i*80);
+                ctx.lineTo(120, (Date.now() / 5 % 100) + i*80 + 40);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(280, (Date.now() / 5 % 100) + i*80);
+                ctx.lineTo(280, (Date.now() / 5 % 100) + i*80 + 40);
+                ctx.stroke();
+            }
+
+            drawPlayer();
+            drawObstacles();
+
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#f00';
+                ctx.font = '30px monospace';
+                ctx.fillText('GAME OVER', 80, 280);
+                ctx.fillStyle = '#0f0';
+                ctx.font = '20px monospace';
+                ctx.fillText('Score: ' + score, 140, 320);
+                ctx.fillText('Refresh to play again', 70, 360);
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Controls
+        window.addEventListener('keydown', e => keys[e.key] = true);
+        window.addEventListener('keyup', e => keys[e.key] = false);
+
+        // Start spawning
+        setInterval(() => { if (!gameOver) createObstacle(); }, 800);
+
+        gameLoop();
+    </script>
+</body>
+</html>
